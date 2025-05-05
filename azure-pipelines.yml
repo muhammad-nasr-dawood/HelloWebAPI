@@ -1,0 +1,52 @@
+# Trigger pipeline on merges into master
+trigger:
+  branches:
+    include:
+      - master
+
+# Use your private agent pool
+pool:
+  name: 'YourPrivateAgentPoolName'
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '8.0.x'    # change if you need a different .NET SDK
+
+steps:
+# 1. Ensure the correct .NET SDK is available
+- task: UseDotNet@2
+  displayName: 'Install .NET SDK $(dotnetVersion)'
+  inputs:
+    packageType: 'sdk'
+    version: '$(dotnetVersion)'
+
+# 2. Restore all NuGet dependencies
+- task: DotNetCoreCLI@2
+  displayName: 'Restore dependencies'
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj'
+
+# 3. Build the solution in Release configuration
+- task: DotNetCoreCLI@2
+  displayName: 'Build solution'
+  inputs:
+    command: 'build'
+    projects: '**/*.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+
+# 4. (Optional) Run unit tests if you add any test projects later
+ - task: DotNetCoreCLI@2
+   displayName: 'Run tests'
+   inputs:
+     command: 'test'
+     projects: '**/*Tests.csproj'
+     arguments: '--configuration $(buildConfiguration)'
+
+# 5. Run your Web API (only if restore & build succeed)
+- task: DotNetCoreCLI@2
+  displayName: 'Run Web API'
+  inputs:
+    command: 'run'
+    projects: 'HelloWebAPI.csproj'
+    arguments: '--configuration $(buildConfiguration)'
